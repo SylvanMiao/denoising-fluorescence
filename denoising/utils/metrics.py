@@ -1,7 +1,13 @@
 import torch
 import numpy as np
 import torch.nn.functional as F
-from skimage.measure import compare_psnr, compare_ssim
+try:
+    # scikit-image >= 0.16 moved PSNR/SSIM to skimage.metrics
+    from skimage.metrics import peak_signal_noise_ratio as compare_psnr
+    from skimage.metrics import structural_similarity as compare_ssim
+except ImportError:
+    # Backward compatibility for older scikit-image versions
+    from skimage.measure import compare_psnr, compare_ssim
 from utils.misc import to_numpy
 
 def cal_psnr(clean, noisy, max_val=255, normalized=True):

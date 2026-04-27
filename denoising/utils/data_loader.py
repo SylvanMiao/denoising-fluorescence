@@ -48,16 +48,16 @@ def fluore_to_tensor(pic):
 
     # handle PIL Image
     if pic.mode == 'I':
-        img = torch.from_numpy(np.array(pic, np.int32, copy=False))
+        img = torch.from_numpy(np.array(pic, np.int32, copy=True))
     elif pic.mode == 'I;16':
-        img = torch.from_numpy(np.array(pic, np.int16, copy=False))
+        img = torch.from_numpy(np.array(pic, np.int16, copy=True))
     elif pic.mode == 'F':
-        img = torch.from_numpy(np.array(pic, np.float32, copy=False))
+        img = torch.from_numpy(np.array(pic, np.float32, copy=True))
     elif pic.mode == '1':
-        img = 255 * torch.from_numpy(np.array(pic, np.uint8, copy=False))
+        img = 255 * torch.from_numpy(np.array(pic, np.uint8, copy=True))
     else:
         # all 8-bit: L, P, RGB, YCbCr, RGBA, CMYK
-        img = torch.ByteTensor(torch.ByteStorage.from_buffer(pic.tobytes()))
+        img = torch.from_numpy(np.array(pic, np.uint8, copy=True))
 
     # PIL image mode: L, P, I, F, RGB, YCbCr, RGBA, CMYK
     if pic.mode == 'YCbCr':

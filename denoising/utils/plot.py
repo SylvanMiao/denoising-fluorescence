@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib.ticker as ticker
 import numpy as np
+import os
+import torch
 from .misc import to_numpy
 import torchvision.utils
 plt.switch_backend('agg')
@@ -28,13 +30,13 @@ def save_samples(save_dir, images, iters, name, nrow=4, heatmap=True,
 
     if images.shape[0] < 10:
         nrow = 2
-        ncol = images.shape[0] // nrow
+        ncol = max(1, int(np.ceil(images.shape[0] / nrow)))
     else:
         ncol = nrow
 
     if heatmap:
         for c in range(images.shape[1]):
-            fig = plt.figure(1, (11, 12))
+            fig = plt.figure(figsize=(11, 12))
             grid = ImageGrid(fig, 111,
                              nrows_ncols=(nrow, ncol),
                              axes_pad=0.1,
@@ -50,13 +52,20 @@ def save_samples(save_dir, images, iters, name, nrow=4, heatmap=True,
                 ax.set_aspect('equal')
             cbar = grid.cbar_axes[0].colorbar(im)
             cbar.ax.tick_params(labelsize=10)
-            cbar.ax.toggle_label(True)
-            plt.savefig(save_dir + '/{}_c{}_{}{}.png'.format(name, c, step, iters),
-                        bbox_inches='tight')
+            # Compatibility: CbarAxes.toggle_label is removed in newer matplotlib.
+            if hasattr(cbar.ax, 'toggle_label'):
+                cbar.ax.toggle_label(True)
+            else:
+                cbar.ax.set_visible(True)
+                for label in cbar.ax.get_xticklabels() + cbar.ax.get_yticklabels():
+                    label.set_visible(True)
+            fig.savefig(os.path.join(save_dir, '{}_c{}_{}{}.png'.format(name, c, step, iters)),
+                         bbox_inches='tight')
             plt.close(fig)
     else:
-        torchvision.utils.save_image(images, 
-                          save_dir + '/fake_samples_{}{}.png'.format(step, iters),
+        image_tensor = torch.from_numpy(images)
+        torchvision.utils.save_image(image_tensor,
+                          os.path.join(save_dir, 'fake_samples_{}{}.png'.format(step, iters)),
                           nrow=nrow,
                           normalize=True)
 
@@ -69,7 +78,7 @@ def save_stats(save_dir, logger, x_axis, *metrics):
     # just in case
     for metric in metrics:
         metric_arr = logger[metric]
-        np.savetxt(save_dir + '/{}.txt'.format(metric), metric_arr)
+        np.savetxt(os.path.join(save_dir, '{}.txt'.format(metric)), metric_arr)
 
 
     if set(['rmse_train', 'rmse_test']) <  set(metrics):
@@ -82,7 +91,7 @@ def save_stats(save_dir, logger, x_axis, *metrics):
         plt.xlabel('Epoch')
         plt.ylabel('RMSE')
         plt.legend(loc='upper right')
-        plt.savefig(save_dir + "/rmse.pdf", dpi=300)
+        plt.savefig(os.path.join(save_dir, "rmse.pdf"), dpi=300)
         plt.close()
 
     if set(['psnr_train', 'psnr_test']) <  set(metrics):
@@ -95,7 +104,7 @@ def save_stats(save_dir, logger, x_axis, *metrics):
         plt.xlabel('Epoch')
         plt.ylabel('PSNR')
         plt.legend(loc='upper right')
-        plt.savefig(save_dir + "/psnr.pdf", dpi=300)
+        plt.savefig(os.path.join(save_dir, "psnr.pdf"), dpi=300)
         plt.close()
 
 
@@ -139,5 +148,5 @@ def plot_row(arrs, save_dir, filename, same_range=False, plot_fn='imshow',
             # cbar.ax.tick_params(labelsize=5)
             cbar.update_ticks()
     plt.tight_layout(pad=0.05, w_pad=0.05, h_pad=0.05)
-    plt.savefig(save_dir + f'/{filename}.{ext}', dpi=dpi, bbox_inches='tight')
+    plt.savefig(os.path.join(save_dir, f'{filename}.{ext}'), dpi=dpi, bbox_inches='tight')
     plt.close(fig)
